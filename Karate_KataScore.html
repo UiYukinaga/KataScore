@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>空手得点集計アプリ - KataScore -</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        th {
+            background-color: #f4f4f4;
+        }
+
+        th:nth-child(1), td:nth-child(1) {
+            width: 60px;
+            font-weight: bold;
+        } /* 順位 */
+
+        th:nth-child(2), td:nth-child(2) {
+            width: 80px;
+        } /* 番号 */
+
+        th:nth-child(3), td:nth-child(3) {
+            width: 150px;
+            font-weight: bold;
+            text-align: left;
+        } /* 選手名 */
+
+        th:nth-child(4), td:nth-child(4) {
+            width: 150px;
+            text-align: left;
+        } /* 所属 */
+
+        th:nth-child(5), td:nth-child(5),
+        th:nth-child(6), td:nth-child(6),
+        th:nth-child(7), td:nth-child(7),
+        th:nth-child(8), td:nth-child(8),
+        th:nth-child(9), td:nth-child(9) {
+            width: 70px;
+        } /* 1審〜5審 */
+
+        th:nth-child(10), td:nth-child(10) {
+            width: 100px;
+            color: #000000;
+            background-color: #cbf4ff;
+            font-weight: bold;
+        } /* 得点 */
+
+        th:nth-child(11), td:nth-child(11),
+        th:nth-child(12), td:nth-child(12) {
+            width: 100px;
+        } /* 最低点加算 & 最高点加算 */
+
+        .selected {
+            background-color: #d1e7ff;
+        }
+
+        .app_title {
+            font-family: Impact;
+            font-size: 24pt;
+            text-align: left;
+            background-color: #2c3e50; /* 帯の色（ここは好きな色に） */
+            height: 60px;              /* 高さを調整 */
+            width: 100%;               /* 横幅いっぱい */
+            color: white;              /* テキストの色（必要なら） */
+            display: flex;
+            align-items: center;
+            padding-left: 20px;        /* 左側に余白 */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* 影をつける（任意） */            
+        }
+        /* .controls { display: flex; align-items: center; margin-bottom: 10px; gap: 15px;} */
+        #csvInput {
+            display: none;
+        }
+        /* 選手リストを読み込むボタンのスタイル */
+        #fileLabel {
+            font-size: 18px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        /* ファイル名表示のスタイル */
+        #fileName {
+            font-size: 18px;
+            margin-left: 10px;
+            color: #000000;
+        }
+        /* コントロール部のスタイル */
+        .controls {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #d0dcfd;
+            padding: 6px;
+        }
+        /* コントロール部への選手情報の表示スタイル */
+        .player-info {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #0d37ad;
+            font-weight: bold;
+        }
+        
+        .scores {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .scores label {
+            font-size: 18px;
+        }
+
+        .scores input {
+            width: 60px;
+            font-size: 18px;
+            padding: 5px;
+            text-align: center;
+            color: #3366ee;
+            border-radius: 5px;
+        }
+
+        #saveScore, #result_clac {
+            font-size: 18px;
+            padding: 8px 15px;
+            cursor: pointer;
+            margin-top: 10px;
+            background-color: #93adf2;
+            border-radius: 5px;
+        }
+
+        .result {
+            text-align: right;
+        }
+
+        #save_results {
+            font-size: 18px;
+            padding: 8px 15px;
+            cursor: pointer;
+            margin-top: 10px;
+            background-color: #6c93ff; /* 「順位を集計」ボタンと同じ */
+            border-radius: 5px;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 10px 0;
+        }
+
+        .file-container_1 {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            justify-content: flex-start;
+        }
+
+        .file-container_2 {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            align-items: center;
+            margin-left: auto; /* 右端へ固定 */
+            flex-wrap: nowrap; /* 改行防止 */
+        }
+
+        #load_results {
+            order: 1; /* 左側 */
+            font-size: 16px;
+            padding: 8px 12px;
+            cursor: pointer;
+            background-color: #3166f5;
+            color: white;
+            border-radius: 5px;
+            border: none;
+        }
+
+        #clear_list {
+            order: 2; /* 右側 */
+            font-size: 16px;
+            padding: 8px 12px;
+            cursor: pointer;
+            background-color: #ff6b6b;
+            color: white;
+            border-radius: 5px;
+            border: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2><div class="app_title">Kata Score</div></h2>
+
+    <div class="file-container_1">
+        <label id="fileLabel" for="csvInput">選手リストを読み込む</label>
+        <span id="fileName">ファイルが選択されていません</span>
+    </div>
+    <div class="file-container_2">
+        <button id="load_results">結果の読み込み</button>
+        <button id="clear_list">リストをクリア</button>
+    </div>
+
+    <input type="file" id="csvInput">
+
+    <div class="controls">
+        <div class="player-info" id="playerInfo">*一覧をクリックして選手を選択してください</div>
+        <div class="scores">
+            <label for="score1">1審:</label> <input type="number" id="score1" name="point" disabled>
+            <label for="score2">2審:</label> <input type="number" id="score2" name="point" disabled>
+            <label for="score3">3審:</label> <input type="number" id="score3" name="point" disabled>
+            <label for="score4">4審:</label> <input type="number" id="score4" name="point" disabled>
+            <label for="score5">5審:</label> <input type="number" id="score5" name="point" disabled>
+        </div>
+        <button id="saveScore" disabled>点数を保存</button>
+    </div>
+    <table id="playerTable">
+        <thead>
+            <tr>
+                <th>順位</th>
+                <th>番号</th>
+                <th>選手名</th>
+                <th>所属</th>
+                <th>1審</th>
+                <th>2審</th>
+                <th>3審</th>
+                <th>4審</th>
+                <th>5審</th>
+                <th>得点</th>
+                <th>最低点+</th>
+                <th>最高点+</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <div class="result">
+    <button id="result_clac">順位を集計</button>
+    <button id="save_results">結果の保存</button>
+    </div>
+
+<script>
+    /* 選手リストのCSVをインポートする */
+    document.getElementById("csvInput").addEventListener("change", function(event) {
+        const file = event.target.files[0];
+        document.getElementById("fileName").textContent = file.name;
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            console.log("CSVデータ:", e.target.result); // 読み込んだデータの確認
+            const lines = e.target.result.split("\n").slice(1); // ヘッダーをスキップ
+            const tbody = document.querySelector("#playerTable tbody");
+
+            tbody.innerHTML = ""; // 既存データをクリア
+            console.log("テーブルのクリア完了");
+
+            lines.forEach(line => {
+                const cols = line.split(",");
+                if (cols.length < 3) {
+                    console.warn("データ不足の行をスキップ:", line);
+                    return;
+                }
+
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td></td><td>${cols[0]}</td><td>${cols[1]}</td><td>${cols[2]}</td>
+                    <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                `;
+                tbody.appendChild(row);
+
+                console.log("追加された行:", row.innerHTML);
+            });
+
+            console.log("最終的なテーブルの状態:", tbody.innerHTML); // 🔍 最終的なデータ確認
+        };
+
+        reader.readAsText(file);
+    });
+    /* テーブルの行を選択した時に、コントロール部へ情報を表示する */
+    document.querySelector("#playerTable tbody").addEventListener("click", function(event) {
+        const rows = document.querySelectorAll("#playerTable tbody tr");
+        rows.forEach(row => row.classList.remove("selected"));
+
+        const selectedRow = event.target.parentElement;
+        selectedRow.classList.add("selected");
+
+        const scores = selectedRow.cells;
+        document.getElementById("playerInfo").textContent = `${scores[1].textContent}　　${scores[2].textContent}　　${scores[3].textContent}`;
+
+        document.getElementById("score1").value = scores[4].textContent || "";
+        document.getElementById("score2").value = scores[5].textContent || "";
+        document.getElementById("score3").value = scores[6].textContent || "";
+        document.getElementById("score4").value = scores[7].textContent || "";
+        document.getElementById("score5").value = scores[8].textContent || "";
+
+        document.querySelectorAll(".scores input, #saveScore").forEach(el => el.removeAttribute("disabled"));
+    });
+    /* 入力した判定結果をテーブルへ反映する & 得点を計算する */
+    document.getElementById("saveScore").addEventListener("click", function() {
+        const scores = [
+            document.getElementById("score1").value,
+            document.getElementById("score2").value,
+            document.getElementById("score3").value,
+            document.getElementById("score4").value,
+            document.getElementById("score5").value
+        ];
+
+        const selectedRow = document.querySelector("#playerTable tbody tr.selected");
+        if (selectedRow) {
+            for (let i = 0; i < 5; i++) {
+                selectedRow.cells[i + 4].textContent = scores[i];
+            }
+
+            const numericScores = scores.map(s => parseFloat(s) || 0);
+            numericScores.sort((a, b) => a - b);
+
+            let totalScore = numericScores.slice(1, 4).reduce((a, b) => a + b, 0); /* 最大・最小除外 */
+            totalScore = totalScore.toFixed(1);
+            selectedRow.cells[9].textContent = totalScore; /* 得点をテーブルに表示 */
+
+
+            //var totalScore = numericScores.slice(1, 4).reduce((a, b) => a + b, 0); /* 最大・最小除外 */
+
+            //selectedRow.cells[9].textContent = totalScore; /* 得点をテーブルに表示 */
+        }
+    });
+    /* 順位結果を計算する */
+    document.getElementById("result_clac").addEventListener("click", function() {
+        if(confirm("順位を集計して試合結果を確定します。\nよろしいですか？")){
+            calculateRanking();
+        }
+    });
+
+    /* 順位の計算処理 */
+    function calculateRanking() {
+        const rows = Array.from(document.querySelectorAll("#playerTable tbody tr"));
+        const players = [];
+
+        rows.forEach(row => {
+            let rawScores = [];
+            for (let i = 4; i <= 8; i++) {
+                let val = parseFloat(row.cells[i].textContent.trim());
+                if (isNaN(val)) val = 0;
+                rawScores.push(val);
+            }
+
+            rawScores.sort((a, b) => a - b);
+            const minScore = rawScores[0];
+            const maxScore = rawScores[rawScores.length - 1];
+            const score = rawScores.slice(1, 4).reduce((sum, num) => sum + num, 0);
+
+            players.push({ row, score, minScore, maxScore });
+        });
+
+        players.sort((a, b) => {
+            if (a.score !== b.score) return b.score - a.score;
+            if (a.minScore !== b.minScore) return b.minScore - a.minScore;
+            return b.maxScore - a.maxScore;
+        });
+
+        const tbody = document.querySelector("#playerTable tbody");
+        tbody.innerHTML = "";
+
+        players.forEach((player, index) => {
+            player.row.cells[0].textContent = index + 1;
+            player.row.cells[9].textContent = player.score;
+            player.row.cells[10].textContent = player.score + player.minScore;
+            player.row.cells[11].textContent = player.score + player.minScore + player.maxScore;
+            tbody.appendChild(player.row);
+        });
+
+        console.log("順位集計完了（空欄は0に変換済み）");
+    }
+    
+    /* テーブルをクリアする */
+    document.getElementById("clear_list").addEventListener("click", function() {
+        if (confirm("リストをクリアします。\nよろしいですか？")) {
+            location.reload(); // ユーザーがOKを押したらリロード
+        }
+    /*    
+        const tbody = document.querySelector("#playerTable tbody");
+        tbody.innerHTML = "";  // テーブルの内容をクリア
+
+        // 点数入力欄の値をクリア
+        document.querySelectorAll(".scores input").forEach(input => {
+            input.value = "";
+            input.setAttribute("disabled", "true"); // 入力を無効化
+        });
+
+        // ファイル名をリセット
+        document.getElementById("fileName").textContent = "ファイルが選択されていません";
+
+        // 選手情報をリセット
+        document.getElementById("playerInfo").textContent = "*選手が選択されていません";
+
+        console.log("選手リストと点数入力欄をクリアしました！");
+        */
+    });
+
+    /* 結果を読み込むボタンを押した時の処理 */
+    document.getElementById("load_results").addEventListener("click", function() {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".csv";
+
+        input.addEventListener("change", function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById("fileName").textContent = file.name;
+            readResultsCSV(file);
+        });
+
+        input.click();
+    });
+
+    /* 結果ファイル(CSV)を読み込む */
+    function readResultsCSV(file) {
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            const lines = e.target.result.split("\n").slice(1); // ヘッダーをスキップ
+            const tbody = document.querySelector("#playerTable tbody");
+
+            tbody.innerHTML = ""; // 既存データをクリア
+
+            lines.forEach(line => {
+                const cols = line.split(",");
+                if (cols.length < 12) return;
+
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${cols[0]}</td><td>${cols[1]}</td><td>${cols[2]}</td><td>${cols[3]}</td>
+                    <td>${cols[4]}</td><td>${cols[5]}</td><td>${cols[6]}</td><td>${cols[7]}</td><td>${cols[8]}</td>
+                    <td>${cols[9]}</td><td>${cols[10]}</td><td>${cols[11]}</td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            console.log("結果CSVを読み込み、テーブルに復元完了！");
+        };
+
+        reader.readAsText(file);
+    }
+
+    /* 集計結果をCSVで吐き出す */
+    document.getElementById("save_results").addEventListener("click", function() {
+        const table = document.querySelector("#playerTable");
+        const rows = table.querySelectorAll("tbody tr");
+
+        // ファイル名を取得し、"_結果.csv" を追加
+        const originalFileName = document.getElementById("fileName").textContent.replace(/\..+$/, "");
+        const csvFileName = originalFileName + "_結果.csv";
+
+        let csvContent = "順位,番号,選手名,所属,1審,2審,3審,4審,5審,得点,最低点+,最高点+\n";
+
+        rows.forEach(row => {
+            const rowData = Array.from(row.cells).map(cell => cell.textContent.trim()).join(",");
+            csvContent += rowData + "\n";
+        });
+
+        // CSVをBlob化してダウンロードリンク生成
+        const blob = new Blob([csvContent], { type: "text/csv" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = csvFileName;
+        link.click();
+
+        console.log("CSVファイルを保存しました: " + csvFileName);
+    });
+
+</script>
+
+
+</body>
+</html>
